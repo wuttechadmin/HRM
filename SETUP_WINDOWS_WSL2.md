@@ -124,18 +124,40 @@ Expected output:
 
 ## Running HRM
 
-### From Windows PowerShell
+### Quick Test with Pre-trained Model
+Test the setup using a pre-trained Sudoku model:
+
+```bash
+# Create Sudoku dataset (required for evaluation)
+python3 dataset/build_sudoku_dataset.py --output-dir data/sudoku-extreme-1k-aug-1000 --subsample-size 1000 --num-aug 1000
+
+# Download and test pre-trained model
+python3 -c "
+from huggingface_hub import hf_hub_download
+import os
+os.makedirs('checkpoints', exist_ok=True)
+ckpt = hf_hub_download('sapientinc/HRM-checkpoint-sudoku-extreme', 'checkpoint', local_dir='checkpoints/sudoku')
+config = hf_hub_download('sapientinc/HRM-checkpoint-sudoku-extreme', 'all_config.yaml', local_dir='checkpoints/sudoku')
+print(f'✅ Downloaded checkpoint to: {ckpt}')
+"
+
+# Evaluate the model (this may take a few minutes)
+python3 evaluate.py checkpoint=checkpoints/sudoku/checkpoint
+```
+
+### Training from Scratch
+#### From Windows PowerShell
 You can run HRM commands from Windows PowerShell using the `wsl` prefix:
 
 ```powershell
 # Check training options
 wsl python3 /mnt/c/Development/HRM/pretrain.py --help
 
-# Start training
-wsl python3 /mnt/c/Development/HRM/pretrain.py arch=hrm_v1 data_path=data/arc-aug-1000
+# Quick Sudoku training (10 minutes on RTX 4070)
+wsl python3 /mnt/c/Development/HRM/pretrain.py data_path=data/sudoku-extreme-1k-aug-1000 epochs=20000 eval_interval=2000 global_batch_size=384 lr=7e-5 puzzle_emb_lr=7e-5 weight_decay=1.0 puzzle_emb_weight_decay=1.0
 ```
 
-### From WSL2 Terminal
+#### From WSL2 Terminal
 Or work directly in the WSL2 environment:
 
 ```bash
@@ -146,7 +168,7 @@ wsl
 cd /mnt/c/Development/HRM
 
 # Run training
-python3 pretrain.py arch=hrm_v1 data_path=data/arc-aug-1000
+python3 pretrain.py data_path=data/sudoku-extreme-1k-aug-1000 epochs=20000 eval_interval=2000 global_batch_size=384 lr=7e-5 puzzle_emb_lr=7e-5 weight_decay=1.0 puzzle_emb_weight_decay=1.0
 ```
 
 ## Performance Notes
@@ -192,6 +214,22 @@ processors=8
 #### 4. Permission Errors with Virtual Environments
 Use the system Python with `--break-system-packages` instead of virtual environments in WSL2.
 
+#### 5. "evaluate.py requires checkpoint parameter" Error
+The evaluation script requires a trained model checkpoint:
+
+```bash
+# Wrong (missing checkpoint parameter)
+python3 evaluate.py
+
+# Correct (with checkpoint path)
+python3 evaluate.py checkpoint=/path/to/your/checkpoint
+
+# Use pre-trained models from Hugging Face:
+# - sapientinc/HRM-checkpoint-sudoku-extreme
+# - sapientinc/HRM-checkpoint-ARC-2  
+# - sapientinc/HRM-checkpoint-maze-30x30-hard
+```
+
 ### Performance Optimization
 
 1. **Move project to WSL2 filesystem for better I/O**:
@@ -217,6 +255,8 @@ After successful setup, you should be able to:
 - [x] Import and use FlashAttention
 - [x] Run HRM training scripts without errors
 - [x] See CUDA operations executing on GPU
+- [x] Download and evaluate pre-trained models
+- [x] Create datasets and start training
 
 ## Additional Resources
 
