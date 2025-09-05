@@ -1,0 +1,36 @@
+Checking data in data/sudoku-extreme-1k-aug-1000-new...
+✓ Data directory exists
+✓ Identifiers loaded: ['*']
+✓ Dataset metadata loaded
+{
+  "pad_id": 0,
+  "ignore_label_id": 0,
+  "blank_identifier_id": 0,
+  "vocab_size": 10,
+  "seq_len": 81,
+  "num_puzzle_identifiers": 1,
+  "total_groups": 1000,
+  "mean_puzzle_examples": 1.0,
+  "sets": [
+    "all"
+  ]
+}
+✓ all__inputs.npy loaded, shape: (1001000, 81)
+  Empty cells (zeros): 55855800
+
+First input grid:
+7 * * * 2 3 * 9 8
+* 4 * * 1 5 * * *
+* 2 * 8 * 9 * * *
+* 6 * * * * * 1 5
+* * * * * * * 7 4
+* 7 4 * 5 * * 8 *
+* * * * * * * 2 *
+3 9 * * 4 * * * *
+* 5 * * * 8 * 4 9
+✓ all__labels.npy loaded, shape: (1001000, 81)
+✓ all__puzzle_indices.npy loaded, shape: (1001001,)
+✓ all__puzzle_identifiers.npy loaded, shape: (1001000,)
+✓ all__group_indices.npy loaded, shape: (1001,)
+
+Validation complete!

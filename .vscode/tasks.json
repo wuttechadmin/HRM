@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run HRM Sudoku Notebook",
+			"type": "shell",
+			"command": "source /Users/robertburkhall/Development/HRM/hrm_venv/bin/activate && cd /Users/robertburkhall/Development/HRM && jupyter notebook HRM_Sudoku_MPS.ipynb",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

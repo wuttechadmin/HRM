@@ -116,7 +116,9 @@ def convert_subset(set_name: str, config: DataProcessConfig):
         arr = np.concatenate(seq).reshape(len(seq), -1)
         
         assert np.all((arr >= 0) & (arr <= 9))
-        return arr + 1
+        # Convert empty cells (0) to special value 0, and filled cells (1-9) to values 1-9
+        # This keeps empty cells as 0 which can be displayed as "*"
+        return np.where(arr == 0, 0, arr)
     
     results = {
         "inputs": _seq_to_numpy(results["inputs"]),
@@ -130,7 +132,7 @@ def convert_subset(set_name: str, config: DataProcessConfig):
     # Metadata
     metadata = PuzzleDatasetMetadata(
         seq_len=81,
-        vocab_size=10 + 1,  # PAD + "0" ... "9"
+        vocab_size=10,  # PAD/empty (0) + digits (1-9)
         
         pad_id=0,
         ignore_label_id=0,
@@ -156,7 +158,7 @@ def convert_subset(set_name: str, config: DataProcessConfig):
         
     # Save IDs mapping (for visualization only)
     with open(os.path.join(config.output_dir, "identifiers.json"), "w") as f:
-        json.dump(["<blank>"], f)
+        json.dump(["*"], f)
 
 
 @cli.command(singleton=True)

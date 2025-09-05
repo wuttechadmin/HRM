@@ -15,9 +15,6 @@ import wandb
 import coolname
 import hydra
 import pydantic
-import os
-import importlib
-import sys
 from omegaconf import DictConfig
 
 def get_device():
@@ -31,26 +28,14 @@ def get_device():
 # Get the appropriate device
 DEVICE = get_device()
 
-# Create AdamATan2 using dynamic imports to avoid type checking issues
-if DEVICE == "cuda":
-    try:
-        # Try to dynamically import the module
-        adam_atan2_module = importlib.import_module('adam_atan2')
-        AdamATan2 = getattr(adam_atan2_module, 'AdamATan2')
-        print(f"Using AdamATan2 optimizer from adam_atan2 module")
-    except (ImportError, AttributeError):
-        # Create a fallback optimizer
-        print(f"Using fallback AdamW optimizer for {DEVICE} device")
-        AdamATan2 = torch.optim.AdamW
-else:
-    # For MPS or CPU, always use the fallback optimizer
-    print(f"Using fallback AdamW optimizer for {DEVICE} device")
-    AdamATan2 = torch.optim.AdamW
+
+# Get the appropriate device
+DEVICE = get_device()
+from adam_atan2 import AdamATan2
 
 from puzzle_dataset import PuzzleDataset, PuzzleDatasetConfig, PuzzleDatasetMetadata
 from utils.functions import load_model_class, get_model_source_path
 from models.sparse_embedding import CastedSparseEmbeddingSignSGD_Distributed
-
 
 
 class LossConfig(pydantic.BaseModel):
@@ -151,10 +136,10 @@ def create_model(config: PretrainConfig, train_metadata: PuzzleDatasetMetadata, 
     model_cls = load_model_class(config.arch.name)
     loss_head_cls = load_model_class(config.arch.loss.name)
 
-    with torch.device(DEVICE):
+    with torch.device("cuda"):
         model: nn.Module = model_cls(model_cfg)
         model = loss_head_cls(model, **config.arch.loss.__pydantic_extra__)  # type: ignore
-        if "DISABLE_COMPILE" not in os.environ and DEVICE == "cuda":
+        if "DISABLE_COMPILE" not in os.environ:
             model = torch.compile(model, dynamic=False)  # type: ignore
 
         # Broadcast parameters from rank 0
@@ -177,7 +162,7 @@ def create_model(config: PretrainConfig, train_metadata: PuzzleDatasetMetadata, 
             model.parameters(),
 
             lr=0,  # Needs to be set by scheduler
-            weight_decay=float(config.weight_decay),  # Ensure float type for compatibility
+            weight_decay=config.weight_decay,
             betas=(config.beta1, config.beta2)
         )
     ]
@@ -248,11 +233,11 @@ def train_batch(config: PretrainConfig, train_state: TrainState, batch: Any, glo
         return
 
     # To device
-    batch = {k: v.to(DEVICE) for k, v in batch.items()}
+    batch = {k: v.cuda() for k, v in batch.items()}
 
     # Init carry if it is None
     if train_state.carry is None:
-        with torch.device(DEVICE):
+        with torch.device("cuda"):
             train_state.carry = train_state.model.initial_carry(batch)  # type: ignore
 
     # Forward
@@ -312,8 +297,8 @@ def evaluate(config: PretrainConfig, train_state: TrainState, eval_loader: torch
         carry = None
         for set_name, batch, global_batch_size in eval_loader:
             # To device
-            batch = {k: v.to(DEVICE) for k, v in batch.items()}
-            with torch.device(DEVICE):
+            batch = {k: v.cuda() for k, v in batch.items()}
+            with torch.device("cuda"):
                 carry = train_state.model.initial_carry(batch)  # type: ignore
 
             # Forward
@@ -431,7 +416,7 @@ def launch(hydra_config: DictConfig):
         RANK = dist.get_rank()
         WORLD_SIZE = dist.get_world_size()
 
-        if DEVICE == "cuda":
+        if DEVICE == 'cuda':
             torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
         
     # Load sync'ed config

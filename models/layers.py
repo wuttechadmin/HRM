@@ -1,14 +1,36 @@
 from typing import Tuple
+import os
 
 import torch
 from torch import nn
 import torch.nn.functional as F
 
-try:
-    from flash_attn_interface import flash_attn_func  # type: ignore[import]
-except ImportError:
-    # Fallback to FlashAttention 2
-    from flash_attn import flash_attn_func  # type: ignore[import]
+# Get the device
+def get_device():
+    if torch.cuda.is_available():
+        return "cuda"
+    elif torch.backends.mps.is_available():
+        return "mps"
+    else:
+        return "cpu"
+
+DEVICE = get_device()
+
+# Only try to import flash_attn on CUDA
+flash_attn_func = None  # Initialize to None
+if DEVICE == "cuda":
+    try:
+        from flash_attn_interface import flash_attn_func
+        print("Using FlashAttention from flash_attn_interface")
+    except ImportError:
+        try:
+            # Fallback to FlashAttention 2
+            from flash_attn import flash_attn_func
+            print("Using FlashAttention from flash_attn")
+        except ImportError:
+            print("Warning: FlashAttention not available, falling back to standard attention")
+else:
+    print(f"FlashAttention not available on {DEVICE}, using standard attention")
 
 from models.common import trunc_normal_init_
 
@@ -126,13 +148,45 @@ class Attention(nn.Module):
             cos, sin = cos_sin
             query, key = apply_rotary_pos_emb(query, key, cos, sin)
 
-        # flash attn
-        attn_output = flash_attn_func(q=query, k=key, v=value, causal=self.causal)
-        if isinstance(attn_output, tuple):  # fa2 and fa3 compatibility
-            attn_output = attn_output[0]
+        # Choose attention implementation based on availability
+        if flash_attn_func is not None:
+            # Use flash attention if available
+            attn_output = flash_attn_func(q=query, k=key, v=value, causal=self.causal)
+            if isinstance(attn_output, tuple):  # fa2 and fa3 compatibility
+                attn_output = attn_output[0]
+        else:
+            # Standard attention implementation for MPS or CPU
+            # Reshape query, key, value for standard attention: [batch_size, num_heads, seq_len, head_dim]
+            query = query.transpose(1, 2)  # [batch_size, num_heads, seq_len, head_dim]
+            key = key.transpose(1, 2)      # [batch_size, num_kv_heads, seq_len, head_dim]
+            value = value.transpose(1, 2)  # [batch_size, num_kv_heads, seq_len, head_dim]
+            
+            # For multi-query attention, expand key and value to match number of query heads
+            if self.num_heads != self.num_key_value_heads:
+                key = key.repeat_interleave(self.num_heads // self.num_key_value_heads, dim=1)
+                value = value.repeat_interleave(self.num_heads // self.num_key_value_heads, dim=1)
+            
+            # Scale query
+            query = query * (self.head_dim ** -0.5)
+            
+            # Compute attention scores
+            attention_scores = torch.matmul(query, key.transpose(-1, -2))
+            
+            # Apply causal mask if needed
+            if self.causal:
+                # Create causal mask
+                causal_mask = torch.ones((seq_len, seq_len), dtype=torch.bool, device=query.device).triu(diagonal=1)
+                attention_scores = attention_scores.masked_fill(causal_mask, float('-inf'))
+            
+            # Softmax and apply to values
+            attention_probs = torch.softmax(attention_scores, dim=-1)
+            attn_output = torch.matmul(attention_probs, value)
+            
+            # Reshape back: [batch_size, seq_len, num_heads, head_dim]
+            attn_output = attn_output.transpose(1, 2)
 
-        # attn_output: [batch_size, num_heads, seq_len, head_dim]
-        attn_output = attn_output.view(batch_size, seq_len, self.output_size)  # type: ignore
+        # attn_output: [batch_size, num_heads, seq_len, head_dim] or [batch_size, seq_len, num_heads, head_dim]
+        attn_output = attn_output.reshape(batch_size, seq_len, self.output_size)
         return self.o_proj(attn_output)
 
 

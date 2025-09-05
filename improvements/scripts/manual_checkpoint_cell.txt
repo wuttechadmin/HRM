@@ -1,0 +1,43 @@
+# Add this cell to your notebook to create a manual checkpoint
+
+import torch
+from pathlib import Path
+import datetime
+
+# Create checkpoints directory if it doesn't exist
+checkpoint_dir = Path("checkpoints")
+checkpoint_dir.mkdir(exist_ok=True)
+
+# Create a timestamp for the manual checkpoint
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
+# Assuming these variables are in the current scope from training
+# If any variable is not available, the checkpoint will still be created with partial information
+try:
+    # Save checkpoint with timestamp
+    save_path = checkpoint_dir / f"manual_checkpoint_{timestamp}.pt"
+    
+    # Create a checkpoint dictionary with whatever is available in the current scope
+    checkpoint = {
+        'model_state': model.state_dict() if 'model' in globals() else None,
+        'optimizer_state': optimizer.state_dict() if 'optimizer' in globals() else None,
+        'epoch': globals().get('epoch', None),
+        'global_step': globals().get('global_step', None),
+        'metrics': {}
+    }
+    
+    # Add metrics if available
+    if 'val_metrics' in globals():
+        checkpoint['metrics'] = {
+            'cell_accuracy': val_metrics.get('cell_accuracy', None),
+            'exact_match_rate': val_metrics.get('exact_match_rate', None),
+            'valid_solution_rate': val_metrics.get('valid_solution_rate', None)
+        }
+    
+    torch.save(checkpoint, save_path)
+    print(f"💾 Manually saved checkpoint to {save_path}")
+    print(f"Current training progress has been preserved and can be resumed later.")
+
+except Exception as e:
+    print(f"❌ Error saving checkpoint: {e}")
+    print("Try running this cell in the same context as your training loop.")

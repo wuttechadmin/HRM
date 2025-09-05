@@ -1,0 +1,40 @@
+Starting test_mps_training.py with file output
+
+Using device: mps
+PyTorch version: 2.8.0
+Loading data from data/sudoku-extreme-1k-aug-1000-new/train...
+Successfully loaded 3 examples
+Input shape: torch.Size([3, 81]), device: mps:0
+Label shape: torch.Size([3, 81]), device: mps:0
+
+Creating a simple model...
+Model created on device: mps:0
+
+Running a mini training loop...
+Epoch 1/3, Loss: 33.156822
+Epoch 2/3, Loss: 30.592310
+Epoch 3/3, Loss: 28.181170
+
+Training completed successfully!
+
+Sample input grid:
+7 * * * 2 3 * 9 8
+* 4 * * 1 5 * * *
+* 2 * 8 * 9 * * *
+* 6 * * * * * 1 5
+* * * * * * * 7 4
+* 7 4 * 5 * * 8 *
+* * * * * * * 2 *
+3 9 * * 4 * * * *
+* 5 * * * 8 * 4 9
+
+Sample prediction (raw values):
+0.5 0.3 0.1 0.1 0.3 -0.2 0.3 -0.5 0.0
+-0.1 -0.1 1.2 0.5 0.4 0.1 0.2 0.5 0.2
+-0.5 0.9 0.2 2.2 1.0 0.0 0.0 0.4 0.1
+0.8 0.3 -0.3 -0.6 1.7 0.1 -0.0 1.0 -0.3
+1.5 1.1 1.0 0.0 0.8 0.5 -1.0 0.7 0.7
+-1.0 0.9 1.8 -0.9 0.2 0.6 0.4 0.1 0.4
+0.6 0.9 0.0 0.7 0.2 -0.1 1.3 1.3 1.0
+0.0 0.6 -0.6 -0.5 2.1 0.9 0.6 -0.5 0.7
+0.9 0.1 1.2 1.2 0.4 -0.6 0.3 1.5 0.7
