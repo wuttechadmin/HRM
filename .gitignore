@@ -162,8 +162,77 @@ dmypy.json
 cython_debug/
 
 # PyCharm
-#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
-#  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
-#  and can be added to the global gitignore or merged into this file.  For a more nuclear
-#  option (not recommended) you can uncomment the following to ignore the entire idea folder.
-#.idea/
+.idea/
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Virtual environments (project specific)
+hrm_venv/
+hrm_venv_new/
+
+# Model files (large files)
+*.pt
+*.pth
+*.ckpt
+models/saved_models/
+
+# Large data files
+*.npy
+*.npz
+*.hdf5
+*.h5
+
+# Test files and debugging - NEVER COMMIT THESE TO ROOT
+test_*.py
+debug_*.py
+*_test.py
+*_debug.py
+scratch_*.py
+temp_*.py
+*_temp.py
+
+# Manual/temporary files
+manual_*.txt
+temp_*.txt
+scratch_*.txt
+
+# Restoration/verification files (temporary)
+restore_*.py
+verify_*.py
+working_*.py
+*_restoration.py
+
+# Configuration files with secrets
+config/secrets/
+*.secret
+*.key
+
+# Local development files
+local_*
+dev_*
+
+# Temporary directories
+tmp/
+temp/
+.tmp/
